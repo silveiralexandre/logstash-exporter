@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        {{- if .Values.prod }}
+        image: {{ .Values.image.prod }}
+        {{- else }}
+        image: {{ .Values.image.dev }}
+        {{- end }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9600
+        env:
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy.http | quote }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy.https | quote }}
+        - name: NO_PROXY
+          value: {{ .Values.proxy.no_proxy | quote}}
+        - name: LOGSTASH_SCHEDULE
+          value: {{ .Values.schedule | quote }}
+        - name: ELASTIC_HOST
+          value: {{ .Values.elastic.host | quote }}
+        - name: ELASTIC_PORT
+          value: {{ .Values.elastic.port | quote }}
+        - name: ELASTIC_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secret
+              key: elastic.user
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secret
+              key: elastic.password
+        - name: ELASTIC_CERTIFICATE
+          value: "/usr/share/logstash/config/ca/ca.crt"
+        - name: TOWER_HOST
+          value: {{ .Values.tower.host | quote }}
+        - name: TOWER_PORT
+          value: {{ .Values.tower.port | quote }}
+        - name: TOWER_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secret
+              key: tower.user
+        - name: TOWER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secret
+              key: tower.password
+        - name: TOWER_TIMEOUT
+          value: {{ .Values.tower.timeout | quote }}
+        - name: TOWER_GOMAXPROCS
+          value: {{ .Values.tower.limit | quote }}
+        - name: LSEXPORTER_PROXY
+          value: {{ .Values.tower.proxy | quote }}
+        volumeMounts:
+        - name: {{ .Release.Name }}-secret
+          mountPath: /usr/share/logstash/config/ca
+          readOnly: true
+      securityContext:
+        runAsUser: {{ .Values.runAsUser }}
+      volumes:
+      - name: {{ .Release.Name }}-secret
+        secret:
+          secretName: {{ .Release.Name }}-secret
+      imagePullSecrets:
+      - name: {{ .Values.tower.registrySecret }}
+---

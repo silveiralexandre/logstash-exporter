@@ -1,0 +1,69 @@
+# Set as 'true' for using the production image repository and set the flag as 
+# 'false' for using the development image repository
+prod: false
+image: 
+  dev: gts-cacf-global-team-dev-docker-local.artifactory.swg-devops.com/logstash-custom/tower-metrics:1.0
+  prod: gts-cacf-global-team-prod-docker-local.artifactory.swg-devops.com/logstash-custom/tower-metrics:1.0
+
+# All 'runAsUser' below must be set to an allowed userid on Openshift.
+# Use 'oc describe project <project>' to see allowed userids on
+# property openshift.io/sa.scc.uid-range
+runAsUser: 1000210000
+
+# Configure proxy URL if a proxy is required to access internet.
+# ex: http://myproxyurl:8080 or https://myproxyurl:8443
+proxy:
+  http:
+  https:
+  no_proxy: 127.0.0.1,localhost
+
+# schedule will defines when and how often logstash will extract data from 
+# and transfer to the target Elasticsearch instance, as shown in examples below:
+# 
+# - Run every day at 04:30AM: "30 4 * * *"
+# - Run every day at 12:00AM: "0 0 * * *"
+# - Run every day at 11:59PM: "59 23 * * *"
+# - Run every day at 12:00PM: "0 12 * * *"
+# - Run every 30 minutes    : "*/30 * * * *"
+#
+# the following # format should be used for this field:
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── hour (0 - 23)
+# │ │ ┌───────────── day of the month (1 - 31)
+# │ │ │ ┌───────────── month (1 - 12)
+# │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+# │ │ │ │ │
+# │ │ │ │ │
+# │ │ │ │ │
+# * * * * *
+schedule: "*/5 * * * *"
+
+# Release name must be informed so that Tower's DB service name and secrets
+# are referenced from this chart.
+# IMPORTANT: We're assuming that the database secret to be defined as
+#            according to recommended standards: "{{ .Release.Name }}-db-secret"
+tower:
+  releaseName: tower-metrics
+  registrySecret: tower-registry-secret
+  host: ANSIBLE-TOWER-HOSTNAME
+  port: 443
+  user: jdoe@somemail.com
+  password: YOUR-SECRET-PASSWORD
+  # Defines timeout in seconds for the API requests
+  timeout: 90
+  # Defines the max number of concurrent requests to the target API (default is 50)
+  limit: 100
+  # Proxy for Logstash exporter to access Ansible Tower API
+  # ex: http://myproxyurl:8080 or https://myproxyurl:8443
+  proxy: 
+
+# Insert here connection information for the target Elasticsearch instance
+elastic:
+    host: YOUR-ELASTICSEARCH-HOST
+    port: 443
+    user: jdoe@somemail.com
+    password: YOUR-SECRET-PASSWORD
+    # Enter the SSL CA CRT (PEM format)
+    crt: |
+        -----BEGIN CERTIFICATE-----
+        -----END CERTIFICATE-----
